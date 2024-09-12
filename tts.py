@@ -399,7 +399,7 @@ if __name__ == "__main__":
 		memory_limit = int(resource_limit*1024*1024)
 		resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
 	
-	ctypes.CDLL("/home/vangelic/repos/compsky/__from_chatGPT/playaudio/libcompskyplayaudio.so")
+	ctypes.CDLL(settings_d["wavplayer_SO_file"])
 	clib.init_all.restype = ctypes.c_int
 	clib.uninit_all.restype = ctypes.c_int
 	clib.playAudio.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.c_float, ctypes.c_float, ctypes.c_float]

@@ -1,5 +1,6 @@
 {
 	"resource_limit_in_megabytes": 8000,
+	"wavplayer_SO_file": "/path/to/wavplayer.so",
 	"chattts_speakers_dir": "/path/to/ChatTTS/speakers",
 	"piper_models": {
 		"indian_english_female1": [12,"/path/to/piper-voices/en_US-arctic-medium.onnx"],
