@@ -66,10 +66,10 @@ def getpromptval(promptstr:str, suppress_prompt:bool):
 			break
 	return b
 
-def sleep_with_slight_audio(t:float):
+def sleep_with_slight_audio(t:float, fp:bytes):
 	print("SLEEPING",t)
 	while t > 0.0:
-		clib.playAudio(b"/media/vangelic/DATA/tmp/tts/libritts719_b9143b3a92f062c7ac7b0691affb8fa840411724", 0.0, 0.0, 0.001)
+		clib.playAudio(fp, 0.0, 0.0, 0.001)
 		t -= 0.59
 
 def check_headphones_connected():
@@ -585,6 +585,8 @@ if __name__ == "__main__":
 				stream.close()
 		p.terminate()'''
 		
+		wav_file_to_play_instead_of_silence:str = settings_d["error_sounds"]["wav_file_to_play_instead_of_silence"].encode()
+		
 		require_t_greater_than:int = 0
 		audioid_of_start_of_t_diff_loop:int = 0
 		torepeatifenterpressed_params:list = [0,True,[]]
@@ -600,7 +602,7 @@ if __name__ == "__main__":
 		while True:
 			try:
 				while not check_headphones_connected():
-					clib.playAudio(b"/media/vangelic/DATA/tmp/tts/libritts399_f67deaf853afabfe410717f10520c816019dbeaf", 0.0, 0.0, 0.1*volume)
+					clib.playAudio(settings_d["error_sounds"]["headphones_disconnected"].encode(), 0.0, 0.0, 0.1*volume)
 				
 				if was_key_pressed_since_last_check():
 					audioid, write_if, write_ifs = torepeatifenterpressed_params
@@ -643,7 +645,7 @@ if __name__ == "__main__":
 				
 				if item_kind == ENUM_SLEEP:
 					if not args.no_pause:
-						sleep_with_slight_audio(float(text))
+						sleep_with_slight_audio(float(text), wav_file_to_play_instead_of_silence)
 						'''if "." in text:
 							fp:str = f"{args.outdir}/PAUSE_{text}.ogg"
 							if not os.path.exists(fp):
