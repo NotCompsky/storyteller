@@ -12,24 +12,9 @@ import zlib
 from datetime import datetime as dt
 from hash_utils import gethashoftext
 import ctypes # NOTE: Must precede `import resource` to avoid weird error
-clib = ctypes.CDLL("libcompskyplayaudio.so")
-clib.init_all.restype = ctypes.c_int
-clib.uninit_all.restype = ctypes.c_int
-clib.playAudio.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.c_float, ctypes.c_float, ctypes.c_float]
-if clib.init_all():
-	raise Exception("C library error: init_all() returned true")
+clib = None
 
-import psutil
-import resource
 
-# NOTE: Applying memory limits to avoid system crashing, because some TTS or style-transfer engines assume all computers have 999TB of RAM/VRAM
-# Calculate the maximum memory limit (80% of available memory)
-virtual_memory = psutil.virtual_memory()
-available_memory = 9_000*1024*1024 # virtual_memory.available
-memory_limit = int(available_memory * 0.9)
-print("memory_limit",memory_limit)
-# Set the memory limit
-resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
 
 models:dict = {}
 
@@ -395,6 +380,31 @@ if __name__ == "__main__":
 	settings_d:dict = None
 	with open(args.settings,"r") as f:
 		settings_d = json.load(f)
+	
+	resource_limit:int = settings_d["resource_limit_in_megabytes"]
+	if resource_limit != 0:
+		''' TODO
+		try:
+			import psutil
+		except ModuleNotFoundError:
+			print("WARNING: Resources are not limited. pip install psutil to allow resources to be limited.")
+		else:
+			virtual_memory = psutil.virtual_memory()
+		'''
+		
+		import resource
+		# NOTE: Applying memory limits to avoid system crashing, because some TTS or style-transfer engines assume all computers have 999TB of RAM/VRAM
+		# Calculate the maximum memory limit (80% of available memory)
+		
+		memory_limit = int(resource_limit*1024*1024)
+		resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+	
+	ctypes.CDLL("/home/vangelic/repos/compsky/__from_chatGPT/playaudio/libcompskyplayaudio.so")
+	clib.init_all.restype = ctypes.c_int
+	clib.uninit_all.restype = ctypes.c_int
+	clib.playAudio.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.c_float, ctypes.c_float, ctypes.c_float]
+	if clib.init_all():
+		raise Exception("C library error: init_all() returned true")
 	
 	run_tts = None
 	args.engine = args.engine.lower()
