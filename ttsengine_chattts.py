@@ -33,6 +33,10 @@ params_refine_text = {
 
 speakerasset_rootdir2allfiles:dict = {}
 
+def init(chattts_speakers_dir:str):
+	global speakers_dir
+	speakers_dir = chattts_speakers_dir
+
 def sample_random_speaker(mean=None):
 	dim = chat.pretrain_models['gpt'].gpt.layers[0].mlp.gate_proj.in_features
 	std, _mean = chat.pretrain_models['spk_stat'].chunk(2)
@@ -68,15 +72,14 @@ def find_speaker_asset(rootdir:str, name:str):
 	return asset
 
 def get_speaker(name:str):
-	speakerdir:str = "/path/to/ChatTTS/speakers"
 	spk = None
-	fp:str = find_speaker_asset(speakerdir,name)
+	fp:str = find_speaker_asset(chattts_speakers_dir, name)
 	if fp is not None:
 		with open(fp,"rb") as f:
 			spk = torch_from_numpy(np.load(f))
 	else:
 		spk = chat.sample_random_speaker()
-		with open(f"{speakerdir}/{name}","wb") as f:
+		with open(f"{chattts_speakers_dir}/{name}","wb") as f:
 			np.save(f, spk.detach().numpy())
 	return spk
 
@@ -89,7 +92,7 @@ def speak_as(modelname:str, text:str, outfile:str):
 
 
 all_speakers:list = []
-set_dirs(all_speakers, "/path/to/ChatTTS/speakers")
+set_dirs(all_speakers, chattts_speakers_dir)
 models:dict = {fp.split("/")[-1]:[fp] for fp in all_speakers}
 
 

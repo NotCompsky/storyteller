@@ -11,9 +11,20 @@ from datetime import datetime as dt
 
 engine = None
 
-models:dict = {
-	,
-}
+models:dict = {}
+
+def init(models_metadata_fp:str):
+	if models_metadata_fp is not None:
+		try:
+			import json5 as json
+		except ModuleNotFoundError:
+			import json
+		
+		with open(models_metadata_fp,"r") as f:
+			for key,val in json.load(f).items():
+				models[key] = val
+	else:
+		raise ValueError("You must provide a JSON file of XTTS model metadata; see --help")
 
 def run_tts(is_writeable:bool, modelname:str, jsons:list, outdir:str, audioid2generationtime:dict, deliberately_empty_filepaths:list):
 	global engine

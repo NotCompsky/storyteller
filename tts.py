@@ -384,20 +384,26 @@ if __name__ == "__main__":
 	parser.add_argument("--stats", default=False, action="store_true")
 	parser.add_argument("--no-pause", default=False, action="store_true")
 	parser.add_argument("--engine", default="piper")
+	parser.add_argument("--chattts-speakers-dir", help="/path/to/ChatTTS/speakers")
+	parser.add_argument("--piper-tts-models-json-fp", help='Path to a JSON of the format: {"model name": [VOICE_INDEX_WITHIN_MODEL,"/path/to/en_US-arctic-medium.onnx"],"other model name": [OTHER_VOICE_INDEX_WITHIN_MODEL, "/path/to/en_US-arctic-medium.onnx"],...}')
+	parser.add_argument("--xtts-models-json-fp", help='Path to a JSON of the format: {"model name": "/path/to/voice-sample1.wav","other model name": "/path/to/voice-sample2.mp3",...}')
 	args = parser.parse_args()
 	
 	run_tts = None
 	args.engine = args.engine.lower()
 	if args.engine == "piper":
 		import ttsengine_piper
+		ttsengine_piper.init(args.piper_tts_models_json_fp)
 		run_tts = ttsengine_piper.run_tts
 		models = ttsengine_piper.models
 	elif args.engine == "chattts":
 		import ttsengine_chattts
+		ttsengine_chattts.init(args.chattts_speakers_dir)
 		run_tts = ttsengine_chattts.run_tts
 		models = ttsengine_chattts.models
 	elif args.engine == "xtts":
 		import ttsengine_xtts
+		ttsengine_xtts.init(args.xtts_models_json_fp)
 		run_tts = ttsengine_xtts.run_tts
 		models = ttsengine_xtts.models
 	else:
