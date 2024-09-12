@@ -1,0 +1,19 @@
+{
+	"chattts_speakers_dir": "/path/to/ChatTTS/speakers",
+	"piper_models": {
+		"indian_english_female1": [12,"/path/to/piper-voices/en_US-arctic-medium.onnx"],
+		"indian_english_female2": [15,"/path/to/piper-voices/en_US-arctic-medium.onnx"],
+		
+		"indian_english_male1": [3,"/path/to/piper-voices/en_US-arctic-medium.onnx"],
+		"indian_english_male2": [13,"/path/to/piper-voices/en_US-arctic-medium.onnx"],
+		"indian_english_male3": [17,"/path/to/piper-voices/en_US-arctic-medium.onnx"],
+		
+		"alba": [null,"/path/to/piper-voices/en_GB-alba-medium.onnx"],
+		"aru": [0,"/path/to/piper-voices/en_GB-aru-medium.onnx"],
+	},
+	"xtts_models": {
+		"Person1": "/path/to/voice-samples/a.webm",
+		"Person2": "/path/to/voice-samples/b.wav",
+		"Person3": "/path/to/voice-samples/c.mp3",
+	},
+}
