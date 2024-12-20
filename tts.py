@@ -117,7 +117,7 @@ def process_source_file(tts_engine:str, filepath:str, alias2modelname:dict, audi
 	
 	audios_within_story.append([ENUM_START_OF_FILE,0,filepath,""])
 	
-	lines:list = []
+	lines:list = None
 	with open(filepath,"rb") as f:
 		x:bytes = f.read()
 		y:str = None
