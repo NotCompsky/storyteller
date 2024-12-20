@@ -9,6 +9,7 @@ import subprocess
 import json
 import random
 import zlib
+import zstandard as zstd
 from datetime import datetime as dt
 from hash_utils import gethashoftext
 import ctypes # NOTE: Must precede `import resource` to avoid weird error
@@ -94,6 +95,10 @@ def gzip_compress(contents:bytes):
 def gzip_decompress(contents:bytes):
 	return zlib.decompress(contents, wbits=31)
 
+def zstd_decompress(data:bytes):
+	dctx = zstandard.ZstdDecompressor()
+	return dctx.decompress(data)
+
 def strip_trailing_comment(s:str):
 	return re.sub(" *#.*$", "", s)
 
@@ -113,8 +118,14 @@ def process_source_file(tts_engine:str, filepath:str, alias2modelname:dict, audi
 	audios_within_story.append([ENUM_START_OF_FILE,0,filepath,""])
 	
 	lines:list = []
-	with open(filepath,"r") as f:
-		lines = f.read().split("\n")
+	with open(filepath,"rb") as f:
+		x:bytes = f.read()
+		y:str = None
+		if (x[0]==0x28) and (x[1]==0xB5) and (x[2]==0x2F) and (x[3]==0xFD): # ZStd compressed
+			y = zstd_decompress(x)
+		else:
+			y = x.decode()
+		lines = y.split("\n")
 	
 	parsing_audio_assets:bool = False
 	parsing_model_aliases:bool = False
