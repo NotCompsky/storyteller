@@ -1,0 +1,151 @@
+* {
+	margin:0;
+	padding:0;
+}
+li {
+	margin-left:1em;
+}
+body {
+	background:#000;
+	color:#fff;
+}
+input[type="radio"] {
+	margin-right:1em;
+}
+#header, #footer {
+	width:600px;
+	margin:0 auto;
+}
+.output {
+}
+section {
+	width:80%;
+	margin-top:15px;
+	padding:3px;
+}
+.ctnt_section {
+	margin-right:20%;
+	background:#333;
+}
+.cmnt_section {
+	margin-left:20%;
+	margin-right:0;
+	background:#330;
+}
+.outcmntsctn {
+	margin-left:0;
+	margin-right:20%;
+	background:#330;
+}
+.emptytokenthing {
+	margin-left:20%;
+	margin-right:0;
+	background:#f00;
+}
+.mtdt_section {
+	margin-left:10%;
+	margin-right:10%;
+	background:orange;
+}
+.fgaudsctn {
+	margin-left:10%;
+	margin-right:10%;
+	background:cyan;
+}
+.bgaudsctn {
+	margin-left:10%;
+	margin-right:10%;
+	background:blue;
+}
+.pausesctn {
+	margin-left:10%;
+	margin-right:10%;
+	background:brown;
+}
+.macrosctn {
+	margin-left:10%;
+	margin-right:10%;
+	background:green;
+}
+.macrodefsctn {
+	margin-left:10%;
+	margin-right:10%;
+	background:green;
+}
+.audioassetssctn {
+	margin-left:10%;
+	margin-right:10%;
+	background:orange;
+}
+#addsection, #loadfromchatgptclipboard {
+	width:fit-content;
+}
+.delbtn {
+	width:2em;
+	background:red;
+}
+#addsection_container {
+	display:inline-grid;
+	grid-template-columns: 1fr 1fr;
+}
+.sectioncontents {
+	display:block;
+	background:#004;
+	width:100%;
+	height:90vh;
+	field-sizing: content; /* Chrome-only atm: https://caniuse.com/?search=field-sizing https://developer.mozilla.org/en-US/docs/Web/CSS/field-sizing */
+	color:#fff;
+	font-family:Ariel;
+	white-space:pre-wrap;
+}
+.renderedcontent {
+	background:#339;
+	width:100%;
+	min-height:1em;
+	max-height:5em;
+	overflow-y:scroll;
+	font-family:Ariel;
+	white-space:pre;
+}
+:where(.ctnt_section, .cmnt_section) > .renderedcontent {
+	max-height:unset;
+}
+:where(.fgaudsctn, .bgaudsctn, .pausesctn, .macrosctn) > .renderedcontent {
+	display:inline;
+	min-height:unset;
+	height:1em;
+	width:fit-content:
+}
+:where(.fgaudsctn, .bgaudsctn, .pausesctn, .macrosctn)::before {
+	content:attr(data-sectiontypename);
+	margin-right:1em;
+}
+.ctnt_section > .renderedcontent {
+	white-space:unset;
+}
+.ctnt_section p { /* NOTE: See adlfkjsfldhslhdkfs */
+	white-space:pre-line;
+}
+:where(.cmnt_section, .outcmntsctn) > .renderedcontent {
+	background:#550;
+}
+.radiocontainer {
+	display:inline-block;
+	margin-right:5em;
+}
+#loadfromchatgptclipboard_form {
+	padding:1em;
+	background:#222;
+}
+#cvt2md_inpbox {
+	display:block;
+	min-width:10em;
+	min-height:2em;
+	background:#000;
+}
+input[type='file'] {
+	color:#000;
+}
+.displaynone {
+	display:none;
+}

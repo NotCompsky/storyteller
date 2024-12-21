@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+	<head><title>Markdown Viewer</title>
+		<script src="zstd.js.wasminline.js"></script>
+		<link rel="stylesheet" href="md_viewer.css"></link>
+	</head>
+	<body>
+		<div id="header">
+			<label>Import <input id="load_btn" type="file"/></label>
+			<button id="save_btn" disabled="">Export</button>
+			(<label><input id="compressed_io_btn" type="checkbox"/> Compressed IO?</label>)
+		</div>
+		<div id="output"></div>
+		<div id="footer">
+			Add section...<div id="addsection_container">
+				<button id="addsection">+</button><div>from empty</div>
+				<input id="loadfilebtn" type="file"/><div>from file</div>
+				<button id="loadfromchatgptclipboard">Convert</button><div>from ChatGPT clipboard</div>
+				<div id="loadfromchatgptclipboard_form" class="displaynone">
+					<textbox id="cvt2md_inpbox" contenteditable="">Paste here, then click:</textbox>
+					<button id="cvt2md_dobtn">Convert</button>
+				</div>
+			</div>
+		</div>
+		<script type="text/javascript">
+const compressed_io_btn = document.getElementById("compressed_io_btn");
+const cvt2md_inpbox = document.getElementById("cvt2md_inpbox");
+const cvt2md_dobtn = document.getElementById("cvt2md_dobtn");
+const loadfromchatgptclipboard_form = document.getElementById("loadfromchatgptclipboard_form");
+const load_btn = document.getElementById("load_btn");
+const save_btn = document.getElementById("save_btn");
+const EMPTYTOKENTHING = 12;
+const opening_tokens = [ "\n<comment>\n","\n<!--",      "\n<content>\n","\n<div>",      "\n<metadata>\n", "\nFG_AUDIO ", "\nBG_AUDIO ", "\nPAUSE ", "\nMACRO==", "\n== MACRO=",         "\n== AUDIO ASSETS ==\n",     "# ",         ""];
+const closing_tokens = ["\n</comment>\n","-->",        "\n</content>\n","\n</div>\n",  "\n</metadata>\n", "\n",          "\n",          "\n",       "\n",        "\n== END MACRO ==\n", "\n== END AUDIO ASSETS ==\n", "\n",        ""];
+const token_values   = [0,               0,            2,               2,             4,                 5,             6,             7,          8,           9,                     10,                           11,           12];
+const token_names    = ["Comment",null,                "Content",null,                 "Metadata",        "FG Audio",    "BG Audio",    "Pause",    "Macro",     "Macro Definition",    "Audio Assets",               "Out Comment", "EMPTYTOKENTHING"];
+const token_classes  = ["cmnt_section",null,           "ctnt_section",null,            "mtdt_section",    "fgaudsctn",   "bgaudsctn",   "pausesctn","macrosctn", "macrodefsctn",        "audioassetssctn",            "outcmntsctn", "emptytokenthing"];
+const text_decoder = new TextDecoder();
+const processdfdsffdssd = txt => {
+	txt = "\n" + txt;
+	if (txt.charCodeAt(txt.length-1) !== 10){
+		txt += "\n";
+	}
+	
+	let offset = 0;
+	let iii = 0;
+	while(true){
+		if (++iii === 999){
+			alert("Max iters reached! wtf is it doing?");
+			break;
+		}
+		
+		let startindx = (1<<30);
+		let raw_tokenindx = -1;
+		for (let i = 0;  i < opening_tokens.length;  ++i){
+			if (i === EMPTYTOKENTHING)
+				continue;
+			const _startindx = txt.indexOf(opening_tokens[i], offset);
+			if ((_startindx !== -1) && (_startindx < startindx)){
+				startindx = _startindx;
+				raw_tokenindx = i;
+			}
+		}
+		if (startindx === (1<<30))
+			break;
+		const tokenindx = token_values[raw_tokenindx]; // Handles conversions from e.g. "<!-- -->" to "<comment> </comment>"
+		
+		for (let i = offset;  i < startindx;  ++i){
+			const cc = txt.charCodeAt(i);
+			if ((cc !== 10) && (cc !== 32)){ // newline and space
+				add_to_document(txt.slice(offset,startindx), 0, EMPTYTOKENTHING);
+				break;
+			}
+		}
+		
+		const lookfor = closing_tokens[raw_tokenindx];
+		console.log("lookfor " + lookfor + " from tokenindx==" + tokenindx);
+		offset = startindx + opening_tokens[raw_tokenindx].length;
+		const endindx = txt.indexOf(lookfor, offset);
+		if (endindx === -1){
+			alert("ERROR: Malformed input file; couldn't find closing tag (" + lookfor + ") to match opening tag (" + opening_tokens[raw_tokenindx] + "), beginning at startindx " + startindx + " and offset " + offset);
+			break;
+		}
+		offset = endindx + lookfor.length;
+		if (txt.charCodeAt(offset-1) === 10){
+			--offset; // If the closing_token ended with a newline, don't count the newline as consumed
+		}
+		
+		add_to_document(txt.slice(startindx+opening_tokens[raw_tokenindx].length,endindx), 0, tokenindx);
+	}
+	if (offset !== txt.length){
+		add_to_document(txt.slice(offset), 0, EMPTYTOKENTHING);
+	}
+	
+	save_btn.disabled = true;
+};
+load_btn.addEventListener("input", e=>{
+	const file = e.target.files[0];
+	if (file){
+		const reader = new FileReader();
+		reader.addEventListener("load", (ee) => {
+			if (compressed_io_btn.checked){
+				const inp_buf = ee.target.result;
+				ZSTD().then(ZStd => {
+					// Based on the tutorial (https://fhtr.org/zstd-emscripten/)
+					
+					const dctx = ZStd._ZSTD_createDStream();
+					const decompressed = [];
+					let decompressedByteLength = 0;
+					
+					const bufferSize = 100000; // arbitrary
+					const buffers = ZStd._malloc(bufferSize * 2);
+					const buffIn = new Uint8Array(ZStd.HEAPU8.buffer, buffers+4, bufferSize-4);
+					const buffInPos = new Int32Array(ZStd.HEAPU8.buffer, buffers, 1);
+					const buffOut = new Uint8Array(ZStd.HEAPU8.buffer, buffers+bufferSize+4, bufferSize-4);
+					const buffOutPos = new Int32Array(ZStd.HEAPU8.buffer, buffers+bufferSize, 1);
+					
+					console.log(typeof inp_buf, inp_buf, inp_buf.byteLength);
+					
+					const compressedU8 = new Uint8Array(inp_buf);
+					
+					for (var i = 0; i < compressedU8.byteLength; i += buffIn.byteLength) {
+						var block = compressedU8.slice(i, i+buffIn.byteLength);
+						buffIn.set(block);
+						buffInPos[0] = 0;
+						while (buffInPos[0] !== block.byteLength){
+							buffOutPos[0] = 0;
+							var ret = ZStd._ZSTD_decompressStream_simpleArgs(
+								dctx,
+								buffOut.byteOffset, buffOut.byteLength, buffOutPos.byteOffset,
+								buffIn.byteOffset, block.byteLength, buffInPos.byteOffset
+							);
+							var decompressedBlock = new Uint8Array(buffOut.slice(0, buffOutPos[0]));
+							if (buffOutPos[0] === 0){ // NOTE: Haven't rigorously thought/tested about this, but stops forever loop
+								break;
+							}
+							console.log("Got decompressed block: %d bytes, data:", buffOutPos[0], decompressedBlock);
+							decompressedByteLength += buffOutPos[0];
+							decompressed.push(decompressedBlock);
+						}
+					}
+					console.log("Decompressed " + compressedU8.byteLength + " bytes to " + decompressedByteLength + " bytes.");
+					
+					const decompressedPtr = ZStd._malloc(decompressedByteLength);
+					const decompressedU8 = new Uint8Array(ZStd.HEAPU8.buffer, decompressedPtr, decompressedByteLength);
+					for (let i = 0, offset = 0; i < decompressed.length; i++) {
+						decompressedU8.set(decompressed[i], offset);
+						offset += decompressed[i].byteLength;
+					}
+					
+					console.log("Decompressed data:", decompressedU8);
+					processdfdsffdssd(text_decoder.decode(decompressedU8));
+				});
+			} else {
+				processdfdsffdssd(ee.target.result);
+			}
+		});
+		if (compressed_io_btn.checked){
+			reader.readAsArrayBuffer(file);
+		} else {
+			reader.readAsText(file);
+		}
+	}
+});
+const savefilestuff = (filecontents, mimetype) => {
+	const file = new Blob([filecontents], {type:mimetype});
+	const a = document.createElement("a");
+	const url = URL.createObjectURL(file);
+	a.href = url;
+	a.download = "contents.txt";
+	document.body.appendChild(a);
+	a.click();
+	save_btn.disabled = true;
+	setTimeout(function(){
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	}, 1);
+};
+save_btn.addEventListener("pointerup", () => {
+	const filecontents = Array.from(document.getElementsByClassName("sectioncontents")).map(x => {
+		const token_indx = x.parentNode.dataset.sectiontype|0;
+		return opening_tokens[token_indx] + x.value + closing_tokens[token_indx];
+	}).join("\n");
+	if (compressed_io_btn.checked){
+		ZSTD().then(ZStd => {
+			const compressionLevel = 9;
+			const origU8 = new TextEncoder().encode(filecontents);
+			const rawSize = origU8.byteLength;
+			const rawPtr = ZStd._malloc(rawSize);
+			const rawU8 = new Uint8Array(ZStd.HEAPU8.buffer, rawPtr, rawSize);
+			rawU8.set(origU8);
+			const compressedPtr = ZStd._malloc(rawSize);
+			const compressedSize = ZStd._ZSTD_compress(compressedPtr, rawSize, rawPtr, rawSize, compressionLevel);
+			console.log("compressedSize", compressedSize);
+			savefilestuff(new Uint8Array(ZStd.HEAPU8.buffer, compressedPtr, compressedSize), "application/octet-stream");
+		});
+	} else {
+		savefilestuff(filecontents, "text/plain");
+	}
+});
+const mdobj = new Markdown.Converter();
+const tomarkdown = (txt) => {
+	return mdobj.makeHtml(txt.replaceAll(/\n\n+/g, "\n")); // NOTE: See adlfkjsfldhslhdkfs
+};
+const output_container = document.getElementById('output');
+const origcontents = [];
+let uniqint = 0;
+const add_radio_btn = (id, value, checked, txt, parent) => {
+	const btn1container = document.createElement("label");
+	const x1 = document.createElement("span");
+	const radiobtn1 = document.createElement("input");
+	radiobtn1.type = "radio";
+	radiobtn1.checked = checked;
+	radiobtn1.name = id;
+	radiobtn1.value = value;
+	x1.innerText = txt;
+	btn1container.appendChild(x1);
+	btn1container.appendChild(radiobtn1);
+	parent.appendChild(btn1container);
+	return radiobtn1;
+};
+const toggle_contentype = e => {
+	const section_node = e.currentTarget.parentNode.parentNode.parentNode;
+	const current_sectiontype = section_node.dataset.sectiontype|0;
+	const new_sectiontype = e.currentTarget.value|0;
+	section_node.classList.remove(token_classes[current_sectiontype]);
+	section_node.classList.add(token_classes[new_sectiontype]);
+	section_node.dataset.sectiontype = new_sectiontype;
+	section_node.dataset.sectiontypename = token_names[new_sectiontype];
+};
+const add_to_document = (txt, start_as_editable, token_indx) => {
+	const thisint = uniqint;
+	
+	txt = txt.replace(/^\n+/g, "").replace(/\n+$/g, "");
+	
+	origcontents[thisint] = txt;
+	
+	const new_node = document.createElement("section");
+	
+	const originalcontent = document.createElement("textarea");
+	originalcontent.contenteditable = true;
+	originalcontent.classList.add("sectioncontents");
+	originalcontent.value = txt;
+	new_node.appendChild(originalcontent);
+	
+	const renderedcontent = document.createElement("div");
+	renderedcontent.classList.add("renderedcontent");
+	renderedcontent.classList.add("displaynone");
+	renderedcontent.innerHTML = (token_indx!==2) ? txt : tomarkdown(txt);
+	new_node.appendChild(renderedcontent);
+	
+	const radiocontainer1 = document.createElement("div");
+	radiocontainer1.classList.add("radiocontainer");
+	const radiobtn1 = add_radio_btn("edit"+thisint, "0", true,  "Edit", radiocontainer1);
+	const radiobtn2 = add_radio_btn("edit"+thisint, "0", false, "View", radiocontainer1);
+	new_node.appendChild(radiocontainer1);
+	
+	const radiocontainer2 = document.createElement("div");
+	radiocontainer2.classList.add("radiocontainer");
+	const contenttyperadiobtns = [];
+	for (let i = 0;  i < token_names.length;  ++i){
+		if (token_names[i] !== null)
+			contenttyperadiobtns.push(add_radio_btn("sectiontype"+thisint, ""+i, (i===token_indx), token_names[i], radiocontainer2));
+	}
+	new_node.dataset.sectiontype = token_indx;
+	new_node.dataset.sectiontypename = token_names[token_indx];
+	new_node.appendChild(radiocontainer2);
+	
+	const delete_btn = document.createElement("button");
+	delete_btn.classList.add("delbtn");
+	delete_btn.innerText = "X";
+	delete_btn.addEventListener("pointerup", ()=>{
+		origcontents[thisint] = null;
+		new_node.remove();
+	});
+	new_node.appendChild(delete_btn);
+	output_container.appendChild(new_node);
+	
+	const toggle_edit_mode = ()=>{
+		originalcontent.classList.toggle("displaynone");
+		renderedcontent.classList.toggle("displaynone");
+		delete_btn.classList.toggle("displaynone");
+	};
+	
+	if (start_as_editable === 0){
+		radiobtn1.checked = false;
+		radiobtn2.checked = true;
+		toggle_edit_mode();
+	}
+	new_node.classList.add(token_classes[token_indx]);
+	radiobtn1.addEventListener("change", toggle_edit_mode);
+	radiobtn2.addEventListener("change", toggle_edit_mode);
+	for (let node of contenttyperadiobtns){
+		node.addEventListener("change", toggle_contentype);
+	}
+	
+	originalcontent.addEventListener("input", ()=>{
+		const ttxt = originalcontent.value;
+		if (ttxt !== origcontents[thisint]){
+			origcontents[thisint] = ttxt;
+			renderedcontent.innerHTML = ((new_node.dataset.sectiontype|0) !== 2) ? ttxt : tomarkdown(ttxt);
+			save_btn.disabled = false;
+		}
+	});
+	
+	save_btn.disabled = false;
+	++uniqint;
+};
+document.getElementById("addsection").addEventListener("pointerup", ()=>{
+	add_to_document("This is a *test*!", 1, 2);
+});
+document.getElementById("loadfilebtn").addEventListener("input", e=>{
+	const file = e.target.files[0];
+	if (file){
+		const reader = new FileReader();
+		reader.addEventListener("load", (ee) => {
+			add_to_document(ee.target.result, 0, 0);
+		});
+		reader.readAsText(file);
+		
+		//const filepath_ish = e.target.value.split("\\"); // Firefox gives C:\\fakepath\\...\\filename
+		//document.getElementById('file-name').innerText = filepath_ish[filepath_ish.length-1];
+	}
+});
+document.getElementById("loadfromchatgptclipboard").addEventListener("pointerup", ()=>{
+	loadfromchatgptclipboard_form.classList.toggle("displaynone");
+});
+cvt2md_dobtn.addEventListener("pointerup", ()=>{
+	const all_children_in_reverse = cvt2md_inpbox.getElementsByTagName("*");
+	for (let i = all_children_in_reverse.length;  i !== 0;  ){
+		--i;
+		const node = all_children_in_reverse[i];
+		let origtxt = node.innerText;
+		switch (node.tagName){
+			case "STRONG":
+				origtxt = "**" + origtxt + "**";
+				break;
+			case "EM":
+				origtxt = "*" + origtxt + "*";
+				break;
+			case "DIV":
+			case "P":
+				break;
+			case "UL":
+			case "OL":
+				origtxt = "\n" + origtxt;
+				break;
+			case "LI":
+				let parentnode = node;
+				while((parentnode.tagName !== "UL") && (parentnode.tagName !== "OL") && (parentnode.tagName !== "BODY")){
+					parentnode = parentnode.parentNode;
+				}
+				origtxt = {"UL":"* ","OL":"1. ","BODY":"* "}[parentnode.tagName] + origtxt;
+				break;
+			case "H2":
+				origtxt = "## " + origtxt;
+				break;
+			case "H3":
+				origtxt = "### " + origtxt;
+				break;
+			case "BR":
+				origtxt = "\n" + origtxt;
+				break;
+			default:
+				origtxt = '<' + node.tagName + '>' + origtxt + '</' + node.tagName + '>';
+				break;
+		}
+		node.innerText = origtxt;
+	}
+	add_to_document(cvt2md_inpbox.innerText, 0, 0);
+	cvt2md_inpbox.innerHTML = "";
+});
+		</script>
+	</body>
+</html>
