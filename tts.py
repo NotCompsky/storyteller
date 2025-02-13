@@ -96,8 +96,14 @@ def gzip_decompress(contents:bytes):
 	return zlib.decompress(contents, wbits=31)
 
 def zstd_decompress(data:bytes):
-	dctx = zstandard.ZstdDecompressor()
-	return dctx.decompress(data)
+	dctx = zstd.ZstdDecompressor()
+	try:
+		return dctx.decompress(data)
+	except zstd.ZstdError: # probably caused by source being from streamed file, see https://github.com/bp74/Zstandard.Net/issues/17
+		stream_reader = dctx.stream_reader(data)
+		data = stream_reader.read().decode('utf-8-sig')
+		stream_reader.close()
+		return data
 
 def strip_trailing_comment(s:str):
 	return re.sub(" *#.*$", "", s)
