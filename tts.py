@@ -463,7 +463,7 @@ if __name__ == "__main__":
 	if not os.path.exists(args.inputfile):
 		raise ValueError(f"No such input file: {args.inputfile}")
 	
-	if not args.outdir.endswith(args.engine):
+	if not (args.outdir.endswith(args.engine) or ("/"+args.engine+"/" in args.outdir)):
 		raise ValueError(f"Exiting for safety: --outdir does not end in {args.engine}")
 	
 	alias2modelname:dict = {}
