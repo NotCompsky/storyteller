@@ -452,6 +452,11 @@ if __name__ == "__main__":
 		ttsengine_xtts.init(settings_d["xtts_models"])
 		run_tts = ttsengine_xtts.run_tts
 		models = ttsengine_xtts.models
+	elif args.engine == "kokoro":
+		import ttsengine_kokoro
+		ttsengine_kokoro.init(settings_d["kokoro_speakers_dir"])
+		run_tts = ttsengine_kokoro.run_tts
+		models = ttsengine_kokoro.models
 	else:
 		raise ValueError(f"Unrecognised TTS engine: {args.engine}")
 	
