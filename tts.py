@@ -44,8 +44,10 @@ ENUM_IFBOOL:int = 11
 ENUM_IFBOOL_END:int = 12
 ENUM_torepeatifenterpressed:int = 13
 
+vlc_path:str = None
+
 def set_bg_audio(fp:str, volumemult:float):
-	return subprocess.Popen(["cvlc","--gain",str(volume*volumemult),"--volume-step","100","--no-random","--no-video","--no-embedded-video","--no-mouse-events","--no-disable-screensaver","--repeat","--no-loop","--audio","--no-fullscreen","--playlist-autostart",fp])
+	return subprocess.Popen([vlc_path,"-I","dummy","--gain",str(volume*volumemult),"--volume-step","100","--no-random","--no-video","--no-embedded-video","--no-mouse-events","--no-disable-screensaver","--repeat","--no-loop","--audio","--no-fullscreen","--playlist-autostart",fp])
 
 def was_key_pressed_since_last_check():
 	b:bool = (len(select.select([sys.stdin], [], [], 0.0)[0]) != 0)
@@ -378,6 +380,7 @@ if __name__ == "__main__":
 	
 	parser = argparse.ArgumentParser()
 	parser.add_argument("inputfile")
+	parser.add_argument("--vlc-path", default="vlc")
 	parser.add_argument("--outdir", required=True)
 	parser.add_argument("--play", default=False, action="store_true")
 	parser.add_argument("--test-audio-volumes", default=False, action="store_true")
@@ -388,6 +391,8 @@ if __name__ == "__main__":
 	parser.add_argument("--engine", default="piper")
 	parser.add_argument("--settings", required=True, help="/path/to/storyteller-settings.json. See "+os.path.dirname(__file__)+"/settings.example.json for an example")
 	args = parser.parse_args()
+	
+	vlc_path = args.vlc_path
 	
 	try:
 		import json5 as json
