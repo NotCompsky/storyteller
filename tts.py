@@ -394,14 +394,21 @@ if __name__ == "__main__":
 	
 	vlc_path = args.vlc_path
 	
+	was_json5_found:bool = False
 	try:
 		import json5 as json
 	except ModuleNotFoundError:
 		import json
+	else:
+		was_json5_found = True
 	
 	settings_d:dict = None
 	with open(args.settings,"r") as f:
-		settings_d = json.load(f)
+		try:
+			settings_d = json.load(f)
+		except json.decoder.JSONDecodeError:
+			if not was_json5_found:
+				raise ValueError("'json5' module not found. Either install 'json5', or restrict settings to 'JSON' format.")
 	
 	resource_limit:int = settings_d["resource_limit_in_megabytes"]
 	if resource_limit != 0:
